@@ -205,7 +205,7 @@ module.exports = function(Chart) {
 			var me = this;
 			// Convert ticks to strings
 			var tickOpts = me.options.ticks;
-			me.ticks = me.ticks.map(tickOpts.userCallback || tickOpts.callback);
+			me.ticks = me.ticks.map(tickOpts.userCallback || tickOpts.callback, me);
 		},
 		afterTickToLabelConversion: function() {
 			helpers.callCallback(this.options.afterTickToLabelConversion, [this]);

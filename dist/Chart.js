@@ -245,6 +245,7 @@ var Color = function (obj) {
 		return new Color(obj);
 	}
 
+	this.valid = false;
 	this.values = {
 		rgb: [0, 0, 0],
 		hsl: [0, 0, 0],
@@ -264,8 +265,6 @@ var Color = function (obj) {
 			this.setValues('hsl', vals);
 		} else if (vals = string.getHwb(obj)) {
 			this.setValues('hwb', vals);
-		} else {
-			throw new Error('Unable to parse color from string "' + obj + '"');
 		}
 	} else if (typeof obj === 'object') {
 		vals = obj;
@@ -279,13 +278,14 @@ var Color = function (obj) {
 			this.setValues('hwb', vals);
 		} else if (vals.c !== undefined || vals.cyan !== undefined) {
 			this.setValues('cmyk', vals);
-		} else {
-			throw new Error('Unable to parse color from object ' + JSON.stringify(obj));
 		}
 	}
 };
 
 Color.prototype = {
+	isValid: function () {
+		return this.valid;
+	},
 	rgb: function () {
 		return this.setSpace('rgb', arguments);
 	},
@@ -628,6 +628,8 @@ Color.prototype.setValues = function (space, vals) {
 	var maxes = this.maxes;
 	var alpha = 1;
 	var i;
+
+	this.valid = true;
 
 	if (space === 'alpha') {
 		alpha = vals;
@@ -7050,7 +7052,7 @@ module.exports = function(Chart) {
 						ctx.setLineDash(itemOrDefault(legendItem.lineDash, lineDefault.borderDash));
 					}
 
-					if (opts.labels && opts.labels.usePointStyle) {
+					if (opts.labels && opts.labels.usePointStyle && legendItem.pointStyle) {
 						// Recalculate x and y for drawPoint() because its expecting
 						// x and y to be center of figure (instead of top left)
 						var radius = fontSize * Math.SQRT2 / 2;
@@ -7770,7 +7772,7 @@ module.exports = function(Chart) {
 			var me = this;
 			// Convert ticks to strings
 			var tickOpts = me.options.ticks;
-			me.ticks = me.ticks.map(tickOpts.userCallback || tickOpts.callback);
+			me.ticks = me.ticks.map(tickOpts.userCallback || tickOpts.callback, me);
 		},
 		afterTickToLabelConversion: function() {
 			helpers.callCallback(this.options.afterTickToLabelConversion, [this]);

@@ -350,7 +350,7 @@ module.exports = function(Chart) {
 						ctx.setLineDash(itemOrDefault(legendItem.lineDash, lineDefault.borderDash));
 					}
 
-					if (opts.labels && opts.labels.usePointStyle) {
+					if (opts.labels && opts.labels.usePointStyle && legendItem.pointStyle) {
 						// Recalculate x and y for drawPoint() because its expecting
 						// x and y to be center of figure (instead of top left)
 						var radius = fontSize * Math.SQRT2 / 2;
