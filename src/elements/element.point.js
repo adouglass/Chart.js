@@ -73,7 +73,7 @@ module.exports = function(Chart) {
 			}
 
 			ctx.strokeStyle = vm.borderColor || defaultColor;
-			ctx.lineWidth = helpers.getValueOrDefault(vm.borderWidth, globalOpts.elements.point.borderWidth);
+			ctx.lineWidth = helpers.valueOrDefault(vm.borderWidth, globalOpts.elements.point.borderWidth);
 			ctx.fillStyle = vm.backgroundColor || defaultColor;
 
 			// Cliping for Points.
@@ -94,7 +94,7 @@ module.exports = function(Chart) {
 				ctx.fillStyle = color(ctx.fillStyle).alpha(ratio).rgbString();
 			}
 
-			Chart.canvasHelpers.drawPoint(ctx, pointStyle, radius, x, y);
+			Chart.helpers.canvas.drawPoint(ctx, pointStyle, radius, x, y);
 		}
 	});
 };

@@ -25,9 +25,9 @@ module.exports = function(Chart) {
 			displayFormats: {
 				millisecond: 'h:mm:ss.SSS a', // 11:20:01.123 AM,
 				second: 'h:mm:ss a', // 11:20:01 AM
-				minute: 'h:mm:ss a', // 11:20:01 AM
-				hour: 'MMM D, hA', // Sept 4, 5PM
-				day: 'll', // Sep 4 2015
+				minute: 'h:mm a', // 11:20 AM
+				hour: 'hA', // 5PM
+				day: 'MMM D', // Sep 4
 				week: 'll', // Week 46, or maybe "[W]WW - YYYY" ?
 				month: 'MMM YYYY', // Sept 2015
 				quarter: '[Q]Q - YYYY', // Q3
@@ -44,6 +44,8 @@ module.exports = function(Chart) {
 			if (!moment) {
 				throw new Error('Chart.js - Moment.js could not be found! You must include it before Chart.js to use the time scale. Download at https://momentjs.com');
 			}
+
+			this.mergeTicksOptions();
 
 			Chart.Scale.prototype.initialize.call(this);
 		},
@@ -144,7 +146,8 @@ module.exports = function(Chart) {
 			me.unit = unit;
 			me.majorUnit = majorUnit;
 
-			var stepSize = timeOpts.stepSize || timeHelpers.determineStepSize(minTimestamp || dataMin, maxTimestamp || dataMax, unit, maxTicks);
+			var optionStepSize = helpers.valueOrDefault(timeOpts.stepSize, timeOpts.unitStepSize);
+			var stepSize = optionStepSize || timeHelpers.determineStepSize(minTimestamp || dataMin, maxTimestamp || dataMax, unit, maxTicks);
 			me.ticks = timeHelpers.generateTicks({
 				maxTicks: maxTicks,
 				min: minTimestamp,
@@ -182,14 +185,34 @@ module.exports = function(Chart) {
 		},
 		// Function to format an individual tick mark
 		tickFormatFunction: function(tick, index, ticks) {
-			var formattedTick = tick.format(this.displayFormat);
-			var tickOpts = this.options.ticks;
-			var callback = helpers.getValueOrDefault(tickOpts.callback, tickOpts.userCallback);
+			var formattedTick;
+			var tickClone = tick.clone();
+			var tickTimestamp = tick.valueOf();
+			var major = false;
+			var tickOpts;
+			if (this.majorUnit && this.majorDisplayFormat && tickTimestamp === tickClone.startOf(this.majorUnit).valueOf()) {
+				// format as major unit
+				formattedTick = tick.format(this.majorDisplayFormat);
+				tickOpts = this.options.ticks.major;
+				major = true;
+			} else {
+				// format as minor (base) unit
+				formattedTick = tick.format(this.displayFormat);
+				tickOpts = this.options.ticks.minor;
+			}
+
+			var callback = helpers.valueOrDefault(tickOpts.callback, tickOpts.userCallback);
 
 			if (callback) {
-				return callback(formattedTick, index, ticks);
+				return {
+					value: callback(formattedTick, index, ticks),
+					major: major
+				};
 			}
-			return formattedTick;
+			return {
+				value: formattedTick,
+				major: major
+			};
 		},
 		convertTicksToLabels: function() {
 			var me = this;
@@ -250,18 +273,19 @@ module.exports = function(Chart) {
 			var tickLabelWidth = me.ctx.measureText(label).width;
 			var cosRotation = Math.cos(helpers.toRadians(ticks.maxRotation));
 			var sinRotation = Math.sin(helpers.toRadians(ticks.maxRotation));
-			var tickFontSize = helpers.getValueOrDefault(ticks.fontSize, Chart.defaults.global.defaultFontSize);
+			var tickFontSize = helpers.valueOrDefault(ticks.fontSize, Chart.defaults.global.defaultFontSize);
 			return (tickLabelWidth * cosRotation) + (tickFontSize * sinRotation);
 		},
 		getLabelCapacity: function(exampleTime) {
 			var me = this;
 
 			me.displayFormat = me.options.time.displayFormats.millisecond;	// Pick the longest format for guestimation
-			var exampleLabel = me.tickFormatFunction(moment(exampleTime), 0, []);
+			var exampleLabel = me.tickFormatFunction(moment(exampleTime), 0, []).value;
 			var tickLabelWidth = me.getLabelWidth(exampleLabel);
 
 			var innerWidth = me.isHorizontal() ? me.width : me.height;
 			var labelCapacity = innerWidth / tickLabelWidth;
+
 			return labelCapacity;
 		}
 	});
